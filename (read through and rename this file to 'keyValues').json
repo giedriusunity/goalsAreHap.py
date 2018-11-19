@@ -1,0 +1,18 @@
+{
+	"spreadsheet": "spreadsheet",
+		"explanation1": "https://docs.google.com/spreadsheets/d/<thisvaluegoesintothefieldabove>/edit?pli#gid=2132761286",
+	"token": "token",
+		"explanation2": "your fogbugz token, Options/Create API token",
+	"assignedFilter": "assignedTo:'xxx' OR assignedTo:'yyy' OR...",
+		"explanation3": "all the peeople in your team. this goes for goal 1, 2 and 3",
+	"newFilters": 	[
+						{"filterSearch": "(fogbugz search query One)", "filterName": "One"},
+						{"filterSearch": "(fogbugz searcg query Two)", "filterName": "Two"}
+					],
+		"explanation41":"any filters you want to check that have unassigned cases. format",
+		"explanation42":"filterSearch - search querry in fogbugz (USE SINGLE QUOTES FOR FILTER QUERY OR PYTHON/JSON WILL GO REEEEE)",
+		"explanation43":"filterName - name you want to display for the filter when a case comes to the sheet, e.g VR, Android, etc",
+		"explanation44":"example above",
+  "goalsInOrder": [ "180", "24", "14", "21" ],
+    "explanation5":"all assigned, max assigned(3 per person on the team), assigned not fixed/completed, unassigned in filters"
+}
