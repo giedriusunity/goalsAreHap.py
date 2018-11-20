@@ -48,7 +48,7 @@ def GoalNotMet(whichGoal, caseValues, data):
         creds = tools.run_flow(flow, store)
     service = build('sheets', 'v4', http=creds.authorize(Http()))
     # Call the Sheets API
-    range_ = "'Goals'!A7:E17"
+    range_ = "'Goals'!A7:E999"
 
     print(
         "Uploading bottlenecks to data report sheet")  ##################################################################
@@ -395,7 +395,7 @@ def FillWithGoal4(potentialOffenders, caseBottleneckAmount, data, goalValues):
         sheetOffset = goalValues.offender3
     elif goalValues.offender4 > 0:
         sheetOffset = goalValues.offender4
-    range_ = "'Goals'!A" + str(7 + sheetOffset) + ":E17"
+    range_ = "'Goals'!A" + str(7 + sheetOffset) + ":E999"
 
     # print(arrayOfValues[0].bugId,arrayOfValues[0].title,arrayOfValues[0].status,arrayOfValues[0].assignedTo,arrayOfValues[0].lastEdited)
     values = {'values': []}
@@ -477,8 +477,8 @@ def main():
         if firstRun == False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
             goalValues = CheckGoals(data)
 
-        if date.today().weekday() == 3 and hasNoBeenLockedThisWeek:
-            if datetime.now().hour == 16:
+        if date.today().weekday() == int(data['updateTime'][0]) and hasNoBeenLockedThisWeek:
+            if datetime.now().hour == int(data['updateTime'][1]):
                 print("Today is the weekly cutoff")
                 hasNoBeenLockedThisWeek = False
                 ReportGoals(goalValues, 1, 0, data)

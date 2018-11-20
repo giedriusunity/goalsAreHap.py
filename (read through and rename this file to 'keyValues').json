@@ -13,6 +13,8 @@
 		"explanation42":"filterSearch - search querry in fogbugz (USE SINGLE QUOTES FOR FILTER QUERY OR PYTHON/JSON WILL GO REEEEE)",
 		"explanation43":"filterName - name you want to display for the filter when a case comes to the sheet, e.g VR, Android, etc",
 		"explanation44":"example above",
-  "goalsInOrder": [ "180", "24", "14", "21" ],
-    "explanation5":"all assigned, max assigned(3 per person on the team), assigned not fixed/completed, unassigned in filters"
+    "goalsInOrder": [ "180", "24", "14", "21" ],
+		"explanation5":"all assigned, max assigned(3 per person on the team), assigned not fixed/completed, unassigned in filters",
+    "updateTime": ["0", "16"],
+		"explanation6": "time to lock down weekly goals. weekday(monday is 0), hour"
 }
