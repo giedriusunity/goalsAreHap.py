@@ -53,7 +53,7 @@ def GoalNotMet(whichGoal, caseValues, data):
     print(
         "Uploading bottlenecks to data report sheet")  ##################################################################
     howManyCasesToShow = 10
-    arrayOfValues = [Cases(None, None, None, None, None)] * howManyCasesToShow
+    arrayOfValues = [Cases(None, None, None, None, None)] * 900
 
     for i in range(0, howManyCasesToShow):
         if caseValues[i].bugId is not None:
