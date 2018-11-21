@@ -53,7 +53,7 @@ def GoalNotMet(whichGoal, caseValues, data):
     print(
         "Uploading bottlenecks to data report sheet")  ##################################################################
     howManyCasesToShow = 10
-    arrayOfValues = [Cases(None, None, None, None, None)] * 900
+    arrayOfValues = [Cases("", "", "", "", "")] * 900
 
     for i in range(0, howManyCasesToShow):
         if caseValues[i].bugId is not None:
@@ -138,11 +138,11 @@ def CheckGoals(data):
     oldestUpdateLastEdited = tree.findall(".//dtLastUpdated")
 
     print("\nStarting Check if Goal 1 is Met")  ###################################################################
-    offenderCases = [Cases(None, None, None, None, None)] * len(oldestUpdateLastEdited)
+    offenderCases = [Cases("", "", "", "", "")] * len(oldestUpdateLastEdited)
     caseValues = [0] * len(oldestUpdateBugId)
     for i in range(0, len(oldestUpdateBugId)):
         caseValues[i] = Cases(oldestUpdateBugId[i].text,
-                              oldestUpdateTitle[i].text,
+                              oldestUpdateTitle[i] .text,
                               oldestUpdateStatus[i].text,
                               oldestUpdateAssignedTo[i].text,
                               oldestUpdateLastEdited[i].text)
@@ -212,7 +212,7 @@ def CheckGoals(data):
     goalCount = int(data['goalsInOrder'][2])
     goal = datetime.now() - timedelta(days=goalCount)
 
-    offenderCases = [Cases(None, None, None, None, None)] * len(oldestUpdateLastEdited)
+    offenderCases = [Cases("", "", "", "", "")] * len(oldestUpdateLastEdited)
     print("\nStarting Check if Goal 3 is Met")  ###################################################################
     for i in range(0, len(oldestUpdateLastEdited)):
         dateStripped = oldestUpdateLastEdited[i].text[0:10]
@@ -304,7 +304,7 @@ def CheckGoals(data):
                                            newFilters[filterIndex]['filterName'],
                                            oldestFiltersLastEdited[i].text)
 
-    offenderCases = [Cases(None, None, None, None, None)] * totalCases
+    offenderCases = [Cases("", "", "", "", "")] * totalCases
     print("0")
     highest = 0
     goalCount = int(data['goalsInOrder'][3])
@@ -340,7 +340,7 @@ def CheckGoals(data):
     print("BottleNeck case ammount:", caseBottleneckAmount)
     if caseBottleneckAmount < 10:
         casesBeyondBottleneck = 10
-        potentialOffenderCases = [Cases(None, None, None, None, None)] * casesBeyondBottleneck
+        potentialOffenderCases = [Cases("", "", "", "", "")] * casesBeyondBottleneck
         caseValues = caseValues[0:totalCases]
         caseValues.sort(key=lambda x: x.lastEdited)
         for index in range(0, len(potentialOffenderCases)):
