@@ -8,8 +8,9 @@ from httplib2 import Http
 from oauth2client import file, client, tools
 import json
 
-#THIS IS HERE TO TEST IF THE COMMIT WORKS
-#One more time
+
+# THIS IS HERE TO TEST IF THE COMMIT WORKS
+# One more time
 class Cases:
     def __init__(self, bugId, title, status, assignedTo, lastEdited):
         self.bugId = bugId
@@ -32,13 +33,14 @@ class Goals:
 
 
 def GoalNotMet(whichGoal, caseValues, data):
+
     for i in range(0, len(caseValues)):
         caseValues[i].lastEdited = str(caseValues[i].lastEdited)
         caseValues[i].lastEdited = caseValues[i].lastEdited[0:10]
     caseValues.sort(key=lambda x: x.lastEdited)
 
     print("Goal ", whichGoal, " not met")
-    print("Starting updating botttleneck cases")  ##################################################################
+
     SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
     SAMPLE_SPREADSHEET_ID = data['spreadsheet']
     store = file.Storage('token.json')
@@ -48,8 +50,22 @@ def GoalNotMet(whichGoal, caseValues, data):
         creds = tools.run_flow(flow, store)
     service = build('sheets', 'v4', http=creds.authorize(Http()))
     # Call the Sheets API
-    range_ = "'Goals'!A7:E999"
 
+    print("Clearing Sheet")
+    clearValues = [Cases("", "", "", "", "")] * 900
+    range_ = "'Goals'!A7:E999"
+    values = {'values': []}
+    for i in range(0, len(clearValues)):
+        values['values'].append([clearValues[i].bugId,
+                                 clearValues[i].title,
+                                 clearValues[i].status,
+                                 clearValues[i].assignedTo,
+                                 clearValues[i].lastEdited])
+
+    request = service.spreadsheets().values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=range_,                                              valueInputOption='USER_ENTERED', body=values)
+    request.execute()
+
+    print("Starting updating botttleneck cases")  #####################################################
     print(
         "Uploading bottlenecks to data report sheet")  ##################################################################
     howManyCasesToShow = 10
@@ -142,7 +158,7 @@ def CheckGoals(data):
     caseValues = [0] * len(oldestUpdateBugId)
     for i in range(0, len(oldestUpdateBugId)):
         caseValues[i] = Cases(oldestUpdateBugId[i].text,
-                              oldestUpdateTitle[i] .text,
+                              oldestUpdateTitle[i].text,
                               oldestUpdateStatus[i].text,
                               oldestUpdateAssignedTo[i].text,
                               oldestUpdateLastEdited[i].text)
@@ -207,7 +223,9 @@ def CheckGoals(data):
             goalBottleneckReached = True
 
     # THIRD GOAL##################################################################
-    goalValues.offender2 = offenderCount
+    goalValues.offender2 =  offenderCount - int(data["goalsInOrder"][1])
+    if goalValues.offender2<0:
+        goalValues.offender2 = 0
     offenderCount = 0
     goalCount = int(data['goalsInOrder'][2])
     goal = datetime.now() - timedelta(days=goalCount)
@@ -218,12 +236,13 @@ def CheckGoals(data):
         dateStripped = oldestUpdateLastEdited[i].text[0:10]
         dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
         if i == 0 or goalCount - (dateFormatted - goal).days > goalValues.g3:
-            if "Resolved (Fixed)" not in oldestUpdateStatus[i].text and "Resolved (Completed)" not in \
-                    oldestUpdateStatus[i].text:
+            if "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
+                    and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
                 print((dateFormatted - goal).days)
                 goalValues.g3 = goalCount - (dateFormatted - goal).days
-        if (dateFormatted - goal).days < 0 and "Resolved (Fixed)" not in oldestUpdateStatus[
-            i].text and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
+        if (dateFormatted - goal).days < 0 \
+                and "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
+                and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
             goalIsMet = False
             goalValues.g3 = goalCount - (dateFormatted - goal).days
             offenderCases[offenderCount] = Cases(caseValues[i].bugId,
@@ -231,6 +250,11 @@ def CheckGoals(data):
                                                  caseValues[i].status,
                                                  caseValues[i].assignedTo,
                                                  caseValues[i].lastEdited)
+            print(caseValues[i].bugId,
+                  caseValues[i].title,
+                  caseValues[i].status,
+                  caseValues[i].assignedTo,
+                  caseValues[i].lastEdited)
             offenderCount = offenderCount + 1
     if goalIsMet:
         print("Goal 3 is met")
@@ -335,23 +359,27 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(4, offenderCases, offenderCount, data)
+            GoalNotMet(4, offenderCases, data)
 
     print("BottleNeck case ammount:", caseBottleneckAmount)
+    casesBeyondBottleneck = 10
+    potentialOffenderCases = [Cases("", "", "", "", "")] * casesBeyondBottleneck
     if caseBottleneckAmount < 10:
-        casesBeyondBottleneck = 10
-        potentialOffenderCases = [Cases(None, None, None, None, None)] * casesBeyondBottleneck
+
         caseValues = caseValues[0:totalCases]
         caseValues.sort(key=lambda x: x.lastEdited)
         for index in range(0, len(potentialOffenderCases)):
             potentialOffenderCases[index] = caseValues[index]
 
     goalValues.offender4 = offenderCount
-
-    if goalValues.offender3==0 and goalValues.offender2==0 and goalValues.offender1==0:
+    print(goalValues.offender1,goalValues.offender2, goalValues.offender3 )
+    if goalValues.offender3 == 0 and goalValues.offender2 == 0 and goalValues.offender1 == 0:
         filteredPotentialOffendrers = RecursiveRemoveDupes(offenderCases, potentialOffenderCases)
+
+        print("Filling while all other goals are met")
         FillWithGoal4(filteredPotentialOffendrers, caseBottleneckAmount, data, goalValues)
     else:
+        print("Filling while some previous goal is not met")
         FillWithGoal4(potentialOffenderCases, caseBottleneckAmount, data, goalValues)
 
     print("4")
@@ -361,7 +389,7 @@ def CheckGoals(data):
 
 def RecursiveRemoveDupes(offenders, potentialOffenders):
     print("Removing duplicates")
-    filteredCases = [Cases(0,0,0,0,0)] * len(potentialOffenders)
+    filteredCases = [Cases(0, 0, 0, 0, 0)] * len(potentialOffenders)
     for i in range(0, len(potentialOffenders)):
         for j in range(0, len(offenders)):
             if potentialOffenders[i].bugId == offenders[j].bugId:
@@ -370,6 +398,8 @@ def RecursiveRemoveDupes(offenders, potentialOffenders):
                 return filteredCases
     filteredCases = potentialOffenders
     return filteredCases
+
+
 ##################################################################
 
 
@@ -471,6 +501,7 @@ def main():
     oneSecondTracker = datetime.now()
     hasNoBeenLockedThisWeek = True
     downIndex = 1
+    print("Starting loop")
     while True:
         curDate = datetime.now()
 
