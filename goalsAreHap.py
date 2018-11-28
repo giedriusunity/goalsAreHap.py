@@ -32,12 +32,17 @@ class Goals:
         self.offender4 = offender4
 
 
-def GoalNotMet(whichGoal, caseValues, data):
-
+def ReturnSorted(caseValues):
     for i in range(0, len(caseValues)):
         caseValues[i].lastEdited = str(caseValues[i].lastEdited)
         caseValues[i].lastEdited = caseValues[i].lastEdited[0:10]
     caseValues.sort(key=lambda x: x.lastEdited)
+    return caseValues
+
+
+def GoalNotMet(whichGoal, caseValues, data):
+
+
 
     print("Goal ", whichGoal, " not met")
 
@@ -78,6 +83,8 @@ def GoalNotMet(whichGoal, caseValues, data):
                                      caseValues[i].status,
                                      caseValues[i].assignedTo,
                                      caseValues[i].lastEdited)
+            if i == 0 and whichGoal == 4:
+                arrayOfValues[i].assignedTo = FindTurn(arrayOfValues[i], data)
         else:
             arrayOfValues[i] = Cases("", "", "", "", "")
     # print(arrayOfValues[0].bugId,arrayOfValues[0].title,arrayOfValues[0].status,arrayOfValues[0].assignedTo,arrayOfValues[0].lastEdited)
@@ -190,7 +197,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(1, offenderCases, data)
+            GoalNotMet(1, ReturnSorted(offenderCases), data)
             goalBottleneckReached = True
 
     # SECOND GOAL##################################################################
@@ -219,7 +226,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(2, offenderCases, data)
+            GoalNotMet(2, ReturnSorted(offenderCases), data)
             goalBottleneckReached = True
 
     # THIRD GOAL##################################################################
@@ -262,7 +269,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(3, offenderCases, data)
+            GoalNotMet(3, ReturnSorted(offenderCases), data)
             goalBottleneckReached = True
     # return
 
@@ -296,6 +303,9 @@ def CheckGoals(data):
     print(len(caseValues))
 
     totalCases = -1
+
+
+
 
     for filterIndex in range(0, len(newFilters)):
 
@@ -359,17 +369,23 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(4, offenderCases, data)
+            GoalNotMet(4, ReturnSorted(offenderCases), data)
 
     print("BottleNeck case ammount:", caseBottleneckAmount)
     casesBeyondBottleneck = 10
     potentialOffenderCases = [Cases("", "", "", "", "")] * casesBeyondBottleneck
+
+
     if caseBottleneckAmount < 10:
 
         caseValues = caseValues[0:totalCases]
-        caseValues.sort(key=lambda x: x.lastEdited)
+        caseValues = ReturnSorted(caseValues)
         for index in range(0, len(potentialOffenderCases)):
             potentialOffenderCases[index] = caseValues[index]
+            if index == 0:
+                potentialOffenderCases[index].assignedTo = FindTurn(potentialOffenderCases[index],
+                                                                    data,)
+
 
     goalValues.offender4 = offenderCount
     print(goalValues.offender1,goalValues.offender2, goalValues.offender3 )
@@ -383,8 +399,40 @@ def CheckGoals(data):
         FillWithGoal4(potentialOffenderCases, caseBottleneckAmount, data, goalValues)
 
     print("4")
-
     return goalValues
+
+
+def FindTurn(original, data):
+
+    with open('turn.json', encoding="utf8") as f:
+        turn = json.load(f)
+    # potentialOffenderCases[index].assignedTo + "(" + data['turnOrder'][0]['owners'][0] + ")"
+    formatted = original.assignedTo
+
+    turnData = {"turn": [], "lastCase": ""}
+
+    for i in range(0, len(turn["turn"])):
+        turnData["turn"].append(turn["turn"][i])
+    turnData["lastCase"] = turn['lastCase']
+
+    for index in range(0, len(data["turnOrder"])):
+
+        if original.assignedTo == data["turnOrder"][index]["filterName"]:
+
+            turnOrder = turn["turn"][index]
+            formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][int(turnOrder)] + ")"
+
+            if original.bugId != turn["lastCase"]:
+                turnData["turn"][index] = str(int(turnData["turn"][index])+1)
+                if int(turnData["turn"][index]) == len(data["turnOrder"][index]['owners']):
+                    turnData["turn"][index] = "0"
+                turnData["lastCase"] = original.bugId
+
+                with open('turn.json', 'w') as outfile:
+                    json.dump(turnData, outfile)
+                return formatted
+    return formatted
+
 
 
 def RecursiveRemoveDupes(offenders, potentialOffenders):
