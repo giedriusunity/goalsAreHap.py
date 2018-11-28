@@ -423,11 +423,22 @@ def FindTurn(original, data):
             formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][int(turnOrder)] + ")"
 
             if original.bugId != turn["lastCase"]:
-                turnData["turn"][index] = str(int(turnData["turn"][index])+1)
+                query = "case:" + turn["lastCase"]
+                queryFull = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + \
+                            query + "&cols=sPersonAssignedTo&token=" + \
+                            data["token"]
+                response = urlopen(queryFull)
+                content = response.read().decode('utf-8')
+                tree = ET.ElementTree(ET.fromstring(content))
+                assignedTo = tree.findall(".//sPersonAssignedTo")
+                personTurn = assignedTo[0].text
+                print(personTurn + " " + data["turnOrder"][index]["owners"][int(turnData["turn"][index])])
+                if data["turnOrder"][index]["owners"][int(turnData["turn"][index])] == personTurn:
+                    turnData["turn"][index] = str(int(turnData["turn"][index])+1)
                 if int(turnData["turn"][index]) == len(data["turnOrder"][index]['owners']):
                     turnData["turn"][index] = "0"
                 turnData["lastCase"] = original.bugId
-
+                formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][int(turnOrder)] + ")"
                 with open('turn.json', 'w') as outfile:
                     json.dump(turnData, outfile)
                 return formatted
