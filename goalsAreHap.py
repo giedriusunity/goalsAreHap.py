@@ -441,7 +441,6 @@ def FindTurn(original, data):
                 formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][int(turnOrder)] + ")"
                 with open('turn.json', 'w') as outfile:
                     json.dump(turnData, outfile)
-                return formatted
     return formatted
 
 
@@ -554,7 +553,7 @@ def ReportGoals(goalValues, regularDay, downIndex, data):
 def main():
     with open('keyValues.json', encoding="utf8") as f:
         data = json.load(f)
-    loopCases = 10
+    loopCases = 2
     firstRun = False
     dateOther = datetime.now()
     oneSecondTracker = datetime.now()
@@ -584,7 +583,7 @@ def main():
         downIndex = 1  # motherfucker this was a bitch to figure our how to do
 
         if (datetime.now() - oneSecondTracker).total_seconds() >= 1:
-            print("Seconds until next caseUpate:", loopCases * 60 - (curDate - dateOther).total_seconds())
+            print(data["team"]+ ": Seconds until next caseUpate:", loopCases * 60 - (curDate - dateOther).total_seconds())
             oneSecondTracker = datetime.now()
         if date.today().weekday() == 6:
             hasNoBeenLockedThisWeek = False

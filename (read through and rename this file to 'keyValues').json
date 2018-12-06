@@ -1,4 +1,6 @@
 {
+	"team": "BLANK",
+		"explanation0": "team name to easilly track what team the instance of the script is goinf for"
 	"spreadsheet": "spreadsheet",
 		"explanation1": "https://docs.google.com/spreadsheets/d/<thisvaluegoesintothefieldabove>/edit?pli#gid=2132761286",
 	"token": "token",
