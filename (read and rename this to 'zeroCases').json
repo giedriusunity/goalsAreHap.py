@@ -1,0 +1,6 @@
+{"filters": [
+{"filterName": "filter1", "owners": ["Fobugz name 3"]}, 
+{"filterName": "filter2", "owners": ["Fobugz name 2", "Fobugz name 1"]}
+],
+"explanation": "set the above to the same as in keyValues",
+ "datesReached": ["0", "0", "0", "0"], "timesReached": ["0", "0", "0", "0"], "casesChecked": [""], "casesSinceLastZero": ["0", "0", "0", "0"], "casesAllZero": "0", "lastReset": "2019-01-25"}

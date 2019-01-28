@@ -32,6 +32,20 @@ class Goals:
         self.offender4 = offender4
 
 
+class ZeroCases:
+    def __init__(self, filterName, filter, beyond):
+        self.filterName = []
+        self.filter = []
+        self.beyond = beyond
+
+
+class ZeroData:
+    def __init__(self, cases, counterLast, counterAllTime):
+        self.cases = []
+        self.counterLast = counterLast
+        self.counterAllTime = counterAllTime
+
+
 def ReturnSorted(caseValues):
     for i in range(0, len(caseValues)):
         caseValues[i].lastEdited = str(caseValues[i].lastEdited)
@@ -67,12 +81,13 @@ def GoalNotMet(whichGoal, caseValues, data):
                                  clearValues[i].assignedTo,
                                  clearValues[i].lastEdited])
 
-    request = service.spreadsheets().values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=range_,                                              valueInputOption='USER_ENTERED', body=values)
+    request = service.spreadsheets().values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=range_,
+                                                     valueInputOption='USER_ENTERED', body=values)
     request.execute()
 
     print("Starting updating botttleneck cases")  #####################################################
     print(
-        "Uploading bottlenecks to data report sheet")  ##################################################################
+        "Uploading bottlenecks to data report sheet")  ################################################################
     howManyCasesToShow = 10
     arrayOfValues = [Cases(None, None, None, None, None)] * 900
 
@@ -114,14 +129,12 @@ def GoalCurrentValues(goal, data):
 
     # goal 2 is weird so its a little different
     # it will show how many cases above 24 there are
-    goal2Correct = goal.offender2 - 24
-    if goal2Correct < 0:
-        goal2Correct = 0
+
 
     values = {
         'values': [
             ["Goal 1", goal.g1, "", "Goal 1", goal.offender1],
-            ["Goal 2", goal.g2, "", "Goal 2", goal2Correct],
+            ["Goal 2", goal.g2, "", "Goal 2", goal.offender2],
             ["Goal 3", goal.g3, "", "Goal 3", goal.offender3],
             ["Goal 4", goal.g4, "", "Goal 4", goal.offender4]
         ]
@@ -145,7 +158,8 @@ def CheckGoals(data):
     assignedFilter = data['assignedFilter']
     searchOldestUpdate = urllib.request.quote(assignedFilter)
     returnedOldestUpdate = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtLastUpdated"
-    queryOldestUpdate = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestUpdate + "&cols=" + returnedOldestUpdate + "&token=" + token
+    queryOldestUpdate = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestUpdate + "&cols=" + \
+                        returnedOldestUpdate + "&token=" + token
     response = urlopen(queryOldestUpdate)
     # print(queryOldestUpdate)
     print("Starting AssignedTo Decode")  #
@@ -219,8 +233,9 @@ def CheckGoals(data):
             activeCases = activeCases + 1
 
     print("Current Active new case count: " + str(activeCases))
+    goalValues.g2 = activeCases
     if activeCases <= goalCount:
-        goalValues.g2 = activeCases
+
         print("Goal 2 is met")
     else:
 
@@ -280,7 +295,8 @@ def CheckGoals(data):
 
     newFilters = data['newFilters']
 
-    assignedTo = urllib.request.quote('assignedTo:"QA Incoming" AND status:active(new) AND(')
+    assignedTo =\
+        urllib.request.quote('assignedTo:"QA Incoming" AND category:"qa incoming incident" and status:active AND(')
 
     fullFilterForCount = assignedTo
     for filterIndex in range(0, len(newFilters)):
@@ -292,7 +308,8 @@ def CheckGoals(data):
 
     returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened"
 
-    queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + fullFilterForCount + ")" + "&cols=" + returnedOldestFilters + "&token=" + token
+    queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + fullFilterForCount + ")" + "&cols=" + \
+                         returnedOldestFilters + "&token=" + token
     print(queryOldestFilters)
     response = urlopen(queryOldestFilters)
 
@@ -302,19 +319,29 @@ def CheckGoals(data):
     caseValues = [0] * (len(oldestAllFiltersBugId) + 10)
     print(len(caseValues))
 
-    totalCases = -1
+    totalCases = 0
 
-
-
-
+    print("###################");
+    print(len(newFilters));
+    print("###################");
+    zeroTracker = ZeroCases([],[],0)
     for filterIndex in range(0, len(newFilters)):
+        zeroTracker.filterName.append(newFilters[filterIndex]["filterName"])
+        zeroTracker.filter.append(0)
+    print("###################");
+    print(len(zeroTracker.filterName));
+    print("###################");
+    zeroGoal = datetime.now() - timedelta(days=1)
+    for filterIndex in range(0, len(newFilters)):
+
 
         searchOldestFilters = assignedTo + urllib.request.quote(
             newFilters[filterIndex]['filterSearch'].replace("'", '"'))
         returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened"
-        queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestFilters + ")" + "&cols=" + returnedOldestFilters + "&token=" + token
+        queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestFilters + ")" + "&cols="\
+                             + returnedOldestFilters + "&token=" + token
         response = urlopen(queryOldestFilters)
-        # print(queryOldestFilters)
+        print(filterIndex, " ", queryOldestFilters)
         print("Starting Oldest In Filters Decode")  ###################################################################
 
         content = response.read().decode('utf-8')
@@ -331,12 +358,24 @@ def CheckGoals(data):
 
         print(len(oldestFiltersBugId))
         for i in range(0, len(oldestFiltersBugId)):
-            totalCases = totalCases + 1
+            
             caseValues[totalCases] = Cases(oldestFiltersBugId[i].text,
                                            oldestFiltersTitle[i].text,
                                            oldestFiltersStatus[i].text,
                                            newFilters[filterIndex]['filterName'],
                                            oldestFiltersLastEdited[i].text)
+            dateStripped = caseValues[totalCases].lastEdited[0:10]
+            dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
+            print((dateFormatted - zeroGoal).days, ": ", dateFormatted, " ", dateStripped, " ",
+                  caseValues[totalCases].lastEdited,
+                  caseValues[totalCases].bugId)
+            if (dateFormatted - zeroGoal).days < -1:
+
+                zeroTracker.filter[filterIndex] = zeroTracker.filter[filterIndex] + 1;
+
+            totalCases = totalCases + 1
+
+    ZeroTracker(data, zeroTracker)
 
     offenderCases = [Cases(None, None, None, None, None)] * totalCases
     print("0")
@@ -358,8 +397,9 @@ def CheckGoals(data):
                                                  caseValues[i].assignedTo,
                                                  caseValues[i].lastEdited)
             print(offenderCases[offenderCount].bugId)
-        if i == 0 or (dateFormatted - goal).days <= highest:
+        if i == 0 or (dateFormatted - goal).days >= highest:
             highest = (dateFormatted - goal).days
+            print("Oldest case days is:", highest)
             goalValues.g4 = goalCount - (dateFormatted - goal).days
             print(goalValues.g4, offenderCases[offenderCount].bugId)
 
@@ -375,12 +415,14 @@ def CheckGoals(data):
     casesBeyondBottleneck = 10
     potentialOffenderCases = [Cases("", "", "", "", "")] * casesBeyondBottleneck
 
-
-    if caseBottleneckAmount < 10:
-
+    if caseBottleneckAmount < 10 and totalCases != 0:
+        if totalCases < 10:
+            loopLen = totalCases
+        else:
+            loopLen = len(potentialOffenderCases)
         caseValues = caseValues[0:totalCases]
         caseValues = ReturnSorted(caseValues)
-        for index in range(0, len(potentialOffenderCases)):
+        for index in range(0, loopLen):
             potentialOffenderCases[index] = caseValues[index]
             if index == 0:
                 potentialOffenderCases[index].assignedTo = FindTurn(potentialOffenderCases[index],
@@ -420,6 +462,7 @@ def FindTurn(original, data):
         if original.assignedTo == data["turnOrder"][index]["filterName"]:
 
             turnOrder = turn["turn"][index]
+            print(index, turnOrder)
             formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][int(turnOrder)] + ")"
 
             if original.bugId != turn["lastCase"]:
@@ -463,7 +506,7 @@ def RecursiveRemoveDupes(offenders, potentialOffenders):
 
 def FillWithGoal4(potentialOffenders, caseBottleneckAmount, data, goalValues):
     print(
-        "Starting filling the rest of sheet with oldest filter cases")  ##################################################################
+        "Starting filling the rest of sheet with oldest filter cases")  ##############################################
     SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
     SAMPLE_SPREADSHEET_ID = data['spreadsheet']
     store = file.Storage('token.json')
@@ -475,7 +518,7 @@ def FillWithGoal4(potentialOffenders, caseBottleneckAmount, data, goalValues):
     # Call the Sheets API
 
     print(
-        "Uploading bottlenecks to data report sheet")  ##################################################################
+        "Uploading bottlenecks to data report sheet")  ###############################################################
     sheetOffset = 0
     if goalValues.offender1 > 0:
         sheetOffset = goalValues.offender1
@@ -550,10 +593,113 @@ def ReportGoals(goalValues, regularDay, downIndex, data):
     request.execute()
 
 
+def ZeroTracker(data, zeroTracker):
+    print("Starting ZeroTracker")
+    with open('zeroCases.json', encoding="utf8") as f:
+        zeroCaseData = json.load(f)
+    SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
+    SAMPLE_SPREADSHEET_ID = data['spreadsheet']
+    range_ = "'Goals'!$L$7:$M$14"
+    store = file.Storage('token.json')
+    creds = store.get()
+    if not creds or creds.invalid:
+        flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
+        creds = tools.run_flow(flow, store)
+    service = build('sheets', 'v4', http=creds.authorize(Http()))
+    values = {'values': []}
+    zeroCaseData = ZeroCumulativeTracker(zeroCaseData, zeroTracker, data)
+    for i in range(0, len(zeroTracker.filter)):
+        values['values'].append([zeroTracker.filterName[i],
+                                 zeroTracker.filter[i]])
+    values["values"].append([""])
+    sumThisWeek = 0
+    for i in range(0, len(zeroCaseData["casesSinceLastZero"])):
+        sumThisWeek += int(zeroCaseData["casesSinceLastZero"][i])
+    values["values"].append(["Cases done when no team cases older than a day"])
+    values["values"].append(["Total", zeroCaseData["casesAllZero"]])
+    values["values"].append(["Weekly Delta", sumThisWeek])
+
+    # request = service.spreadsheets().values().update(SAMPLE_SPREADSHEET_ID, range, True, values)
+    request = service.spreadsheets().values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=range_,
+                                                     valueInputOption='USER_ENTERED', body=values)
+    request.execute()
+
+
+def ZeroCumulativeTracker(zeroCaseData, zeroTracker, data):
+
+    if str(datetime.now())[0:10] != zeroCaseData["lastReset"] and datetime.now().weekday() == 4:
+        for i in range(0, len(zeroCaseData["casesSinceLastZero"])):
+            zeroCaseData["casesSinceLastZero"][i] = "0"
+            zeroCaseData["lastReset"] = str(datetime.now())[0:10]
+    queryStart = urllib.request.quote("editedBy:'QA Incoming' AND ")
+    for i in range(0, len(zeroTracker.filter)):
+        print(zeroTracker.filterName[i], zeroTracker.filter[i])
+        if zeroTracker.filter[i] == 0:
+            if zeroCaseData["datesReached"][i] == "0":
+                dateStripped = str(datetime.now())[0:10]
+                dateStripped = datetime.strptime(dateStripped, '%Y-%m-%d').strftime('%m/%d/%y')
+                zeroCaseData["datesReached"][i] = dateStripped
+
+                time = "" + str(datetime.now().hour-1) + ":" + str(datetime.now().minute)
+                zeroCaseData["timesReached"][i] = time
+            teamEdited = "("
+            for y in range(0, len(zeroCaseData["filters"][i]["owners"])):
+                if y < len(zeroCaseData["filters"][i]["owners"])-1:
+                    teamEdited = teamEdited + "editedBy:'" + zeroCaseData["filters"][i]["owners"][y] + "' OR "
+                else:
+                    teamEdited = teamEdited + "editedBy:'" + zeroCaseData["filters"][i]["owners"][y] + "')"
+            query = "https://fogbugz.unity3d.com/api.asp?cmd=search&q=" + queryStart + \
+                    urllib.request.quote(teamEdited) + \
+                    urllib.request.quote(" AND lastedited:'" + zeroCaseData["datesReached"][i] + " "
+                                         + zeroCaseData["timesReached"][i] + "..'") + \
+                    "&cols=ixBug&token=" + data["token"]
+            print("$$$$$$$$$$$$$$$$$")
+            print(query)
+            print("$$$$$$$$$$$$$$$$$")
+            response = urlopen(query)
+            content = response.read().decode('utf-8')
+            tree = ET.ElementTree(ET.fromstring(content))
+            bugIDsXML = tree.findall(".//ixBug")
+            bugIDs = []
+            for k in range(0, len(bugIDsXML)):
+                bugIDs.append(bugIDsXML[k].text)
+
+            zeroCaseData = CheckForAlreadyEdited(i, bugIDs, zeroCaseData)
+
+        else:
+            print("Team", zeroCaseData["filters"][i]["filterName"], "has cases older than a day, get on that!")
+            zeroCaseData["datesReached"][i] = "0"
+    with open('zeroCases.json', 'w', encoding='utf8') as outfile:
+        json.dump(zeroCaseData, outfile)
+    return zeroCaseData
+
+
+
+def CheckForAlreadyEdited(index, bugIDs, cases):
+    print("Checking if cases that were done since zero reached are not dupes")
+    caseArray = cases["casesChecked"]
+    print(len(cases["casesChecked"]))
+    print(len(bugIDs))
+    for y in range(0, len(bugIDs)):
+        notDupe = True
+        for i in range(0, len(cases["casesChecked"])):
+            #print(type(bugIDs[y]), bugIDs[y], type(cases["casesChecked"][i]), cases["casesChecked"][i],
+             #     bugIDs[y] == cases["casesChecked"][i])
+            if bugIDs[y] == cases["casesChecked"][i]:
+                notDupe = False
+        if notDupe:
+            caseArray.append(bugIDs[y])
+            cases["casesSinceLastZero"][index] = str(int(cases["casesSinceLastZero"][index]) + 1)
+            cases["casesAllZero"] = str(int(cases["casesAllZero"]) + 1)
+    return cases
+
+
+
+
 def main():
     with open('keyValues.json', encoding="utf8") as f:
         data = json.load(f)
-    loopCases = 2
+    loopCases = 5
     firstRun = False
     dateOther = datetime.now()
     oneSecondTracker = datetime.now()
@@ -562,31 +708,34 @@ def main():
     print("Starting loop")
     while True:
         curDate = datetime.now()
+        if 7 <= curDate.hour < 23:
 
-        if firstRun == False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
-            goalValues = CheckGoals(data)
+            if firstRun == False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
+                goalValues = CheckGoals(data)
 
-        if date.today().weekday() == int(data['updateTime'][0]) and hasNoBeenLockedThisWeek:
-            if datetime.now().hour == int(data['updateTime'][1]):
-                print("Today is the weekly cutoff")
+            if date.today().weekday() == int(data['updateTime'][0]) and hasNoBeenLockedThisWeek:
+                if datetime.now().hour == int(data['updateTime'][1]):
+                    print("Today is the weekly cutoff")
+                    hasNoBeenLockedThisWeek = False
+                    ReportGoals(goalValues, 1, 0, data)
+                    downIndex = 0
+
+            if firstRun == False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
+                print("Looping update")
+                dateOther = curDate
+                ReportGoals(goalValues, 2, downIndex, data)
+                GoalCurrentValues(goalValues, data)
+                firstRun = True
+
+            downIndex = 1  # motherfucker this was a bitch to figure our how to do
+
+            if (datetime.now() - oneSecondTracker).total_seconds() >= 1:
+                print(data["team"] + ": Seconds until next caseUpate:", loopCases * 60 - (curDate - dateOther).total_seconds())
+                oneSecondTracker = datetime.now()
+            if date.today().weekday() == 6:
                 hasNoBeenLockedThisWeek = False
-                ReportGoals(goalValues, 1, 0, data)
-                downIndex = 0
-
-        if firstRun == False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
-            print("Looping update")
-            dateOther = curDate
-            ReportGoals(goalValues, 2, downIndex, data)
-            GoalCurrentValues(goalValues, data)
-            firstRun = True
-
-        downIndex = 1  # motherfucker this was a bitch to figure our how to do
-
-        if (datetime.now() - oneSecondTracker).total_seconds() >= 1:
-            print(data["team"]+ ": Seconds until next caseUpate:", loopCases * 60 - (curDate - dateOther).total_seconds())
-            oneSecondTracker = datetime.now()
-        if date.today().weekday() == 6:
-            hasNoBeenLockedThisWeek = False
+        else:
+            print("Time of work is over, what are you still doing here?")
 
 
 main()
