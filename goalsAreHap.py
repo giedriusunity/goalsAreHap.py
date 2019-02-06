@@ -105,7 +105,10 @@ def GoalNotMet(whichGoal, caseValues, data):
     # print(arrayOfValues[0].bugId,arrayOfValues[0].title,arrayOfValues[0].status,arrayOfValues[0].assignedTo,arrayOfValues[0].lastEdited)
     values = {'values': []}
     for i in range(0, len(arrayOfValues)):
-        values['values'].append([arrayOfValues[i].bugId,
+        if arrayOfValues[i].bugId == None:
+            arrayOfValues[i].bugId = ""
+        values['values'].append(['=HYPERLINK("https://fogbugz.unity3d.com/f/cases/' + arrayOfValues[i].bugId +
+                                 '";"' + arrayOfValues[i].bugId + '")',
                                  arrayOfValues[i].title,
                                  arrayOfValues[i].status,
                                  arrayOfValues[i].assignedTo,
@@ -531,8 +534,12 @@ def FillWithGoal4(potentialOffenders, caseBottleneckAmount, data, goalValues):
     # print(arrayOfValues[0].bugId,arrayOfValues[0].title,arrayOfValues[0].status,arrayOfValues[0].assignedTo,arrayOfValues[0].lastEdited)
     values = {'values': []}
     for i in range(0, len(potentialOffenders)):
-        print(potentialOffenders[i].bugId)
-        values['values'].append([potentialOffenders[i].bugId,
+
+        if potentialOffenders[i].bugId == None:
+            potentialOffenders[i].bugId = ""
+        #'=HYPERLINK("https://fogbugz.unity3d.com/f/cases/' + potentialOffenders[i].bugId + '";"' + potentialOffenders[i].bugId + '")'
+        values['values'].append(['=HYPERLINK("https://fogbugz.unity3d.com/f/cases/' + potentialOffenders[i].bugId +
+                                 '";"' + potentialOffenders[i].bugId + '")',
                                  potentialOffenders[i].title,
                                  potentialOffenders[i].status,
                                  potentialOffenders[i].assignedTo,
@@ -637,7 +644,7 @@ def ZeroCumulativeTracker(zeroCaseData, zeroTracker, data):
         if zeroTracker.filter[i] == 0:
             if zeroCaseData["datesReached"][i] == "0":
                 dateStripped = str(datetime.now())[0:10]
-                dateStripped = datetime.strptime(dateStripped, '%Y-%m-%d').strftime('%m/%d/%y')
+                dateStripped = datetime.strptime(dateStripped, '%Y-%m-%d').strftime('%m/%d/%Y')
                 zeroCaseData["datesReached"][i] = dateStripped
 
                 time = "" + str(datetime.now().hour-1) + ":" + str(datetime.now().minute)
