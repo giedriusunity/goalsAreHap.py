@@ -21,7 +21,7 @@ class Cases:
 
 
 class Goals:
-    def __init__(self, g1, g2, g3, g4, offender1, offender2, offender3, offender4):
+    def __init__(self, g1, g2, g3, g4, offender1, offender2, offender3, offender4, triage):
         self.g1 = g1
         self.g2 = g2
         self.g3 = g3
@@ -30,6 +30,7 @@ class Goals:
         self.offender2 = offender2
         self.offender3 = offender3
         self.offender4 = offender4
+        self.triage = triage
 
 
 class ZeroCases:
@@ -46,11 +47,21 @@ class ZeroData:
         self.counterAllTime = counterAllTime
 
 
-def ReturnSorted(caseValues):
+def ReturnSorted(caseValues, goalValues):
+    
+
+    if goalValues.triage > 0:
+        triageCases = Cases(None, None, None, None, None) * goalValues.triage
+        for i in range(0, goalValues.triage-1):
+            triageCases[i] = caseValues[i]
+            caseValues.pop(i)
     for i in range(0, len(caseValues)):
         caseValues[i].lastEdited = str(caseValues[i].lastEdited)
         caseValues[i].lastEdited = caseValues[i].lastEdited[0:10]
     caseValues.sort(key=lambda x: x.lastEdited)
+    if goalValues.triage > 0:
+        for i in range(0, goalValues.triage-1):
+            caseValues.insert(triageCases[i])
     return caseValues
 
 
@@ -128,7 +139,7 @@ def GoalCurrentValues(goal, data):
         flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
         creds = tools.run_flow(flow, store)
     service = build('sheets', 'v4', http=creds.authorize(Http()))
-    range_ = "'Goals'!F7:K10"
+    range_ = "'Goals'!F7:K11"
 
     # goal 2 is weird so its a little different
     # it will show how many cases above 24 there are
@@ -139,7 +150,8 @@ def GoalCurrentValues(goal, data):
             ["Goal 1", goal.g1, "", "Goal 1", goal.offender1],
             ["Goal 2", goal.g2, "", "Goal 2", goal.offender2],
             ["Goal 3", goal.g3, "", "Goal 3", goal.offender3],
-            ["Goal 4", goal.g4, "", "Goal 4", goal.offender4]
+            ["Goal 4", goal.g4, "", "Goal 4", goal.offender4],
+            ["Triage:", goal.triage]
         ]
     }
     request = service.spreadsheets().values().update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=range_,
@@ -153,7 +165,7 @@ def CheckGoals(data):
 
     goalBottleneckReached = False
     offenderCount = 0
-    goalValues = Goals(0, 0, 0, 0, 0, 0, 0, 0)
+    goalValues = Goals(0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     # FIRST GOAL##################################################################
     token = data['token']
@@ -214,7 +226,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(1, ReturnSorted(offenderCases), data)
+            GoalNotMet(1, ReturnSorted(offenderCases,goalValues), data)
             goalBottleneckReached = True
 
     # SECOND GOAL##################################################################
@@ -244,7 +256,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(2, ReturnSorted(offenderCases), data)
+            GoalNotMet(2, ReturnSorted(offenderCases,goalValues), data)
             goalBottleneckReached = True
 
     # THIRD GOAL##################################################################
@@ -288,6 +300,7 @@ def CheckGoals(data):
                      caseValues[i].status,
                      caseValues[i].assignedTo,
                      caseValues[i].lastEdited))
+                goalValues.triage += 1
 #            print(caseValues[i].bugId,
 #                  caseValues[i].title,
 #                  caseValues[i].status,
@@ -300,7 +313,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(3, ReturnSorted(offenderCases), data)
+            GoalNotMet(3, ReturnSorted(offenderCases, goalValues), data)
             goalBottleneckReached = True
     # return
 
@@ -425,7 +438,7 @@ def CheckGoals(data):
 
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
-            GoalNotMet(4, ReturnSorted(offenderCases), data)
+            GoalNotMet(4, ReturnSorted(offenderCases, goalValues), data)
 
     print("BottleNeck case ammount:", caseBottleneckAmount)
     casesBeyondBottleneck = 10
@@ -437,7 +450,7 @@ def CheckGoals(data):
         else:
             loopLen = len(potentialOffenderCases)
         caseValues = caseValues[0:totalCases]
-        caseValues = ReturnSorted(caseValues)
+        caseValues = ReturnSorted(caseValues, goalValues)
         for index in range(0, loopLen):
             potentialOffenderCases[index] = caseValues[index]
             if index == 0:
