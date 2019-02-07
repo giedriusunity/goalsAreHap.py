@@ -254,6 +254,7 @@ def CheckGoals(data):
     offenderCount = 0
     goalCount = int(data['goalsInOrder'][2])
     goal = datetime.now() - timedelta(days=goalCount)
+    goalBugs = datetime.now() - timedelta(days=2)
 
     offenderCases = [Cases(None, None, None, None, None)] * len(oldestUpdateLastEdited)
     print("\nStarting Check if Goal 3 is Met")  ###################################################################
@@ -265,21 +266,33 @@ def CheckGoals(data):
                     and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
                 print((dateFormatted - goal).days)
                 goalValues.g3 = goalCount - (dateFormatted - goal).days
-        if (dateFormatted - goal).days < 0 \
+        if ((dateFormatted - goal).days < 0 \
                 and "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
-                and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
+                and "Resolved (Completed)" not in oldestUpdateStatus[i].text) \
+                or ((dateFormatted - goalBugs).days < 0 and "Active" in oldestUpdateStatus[i].text
+                and "(New)" not in oldestUpdateStatus[i].text and "(Pending Information)" not in oldestUpdateStatus[i].text):
             goalIsMet = False
-            goalValues.g3 = goalCount - (dateFormatted - goal).days
-            offenderCases[offenderCount] = Cases(caseValues[i].bugId,
-                                                 caseValues[i].title,
-                                                 caseValues[i].status,
-                                                 caseValues[i].assignedTo,
-                                                 caseValues[i].lastEdited)
-            print(caseValues[i].bugId,
-                  caseValues[i].title,
-                  caseValues[i].status,
-                  caseValues[i].assignedTo,
-                  caseValues[i].lastEdited)
+
+            if "(New)" in oldestUpdateStatus[i].text or "(Pending Information)" in oldestUpdateStatus[i].text:
+                goalValues.g3 = goalCount - (dateFormatted - goal).days
+                offenderCases[offenderCount] = Cases(caseValues[i].bugId,
+                                                     caseValues[i].title,
+                                                     caseValues[i].status,
+                                                     caseValues[i].assignedTo,
+                                                     caseValues[i].lastEdited)
+            else:
+                goalValues.g3 = goalCount - (dateFormatted - goalBugs).days
+                offenderCases.insert(0, Cases(
+                     caseValues[i].bugId,
+                     caseValues[i].title,
+                     caseValues[i].status,
+                     caseValues[i].assignedTo,
+                     caseValues[i].lastEdited))
+#            print(caseValues[i].bugId,
+#                  caseValues[i].title,
+#                  caseValues[i].status,
+#                  caseValues[i].assignedTo,
+#                  caseValues[i].lastEdited)
             offenderCount = offenderCount + 1
     if goalIsMet:
         print("Goal 3 is met")
