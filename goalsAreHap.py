@@ -12,12 +12,13 @@ import json
 # THIS IS HERE TO TEST IF THE COMMIT WORKS
 # One more time
 class Cases:
-    def __init__(self, bugId, title, status, assignedTo, lastEdited):
+    def __init__(self, bugId, title, status, assignedTo, lastEdited, milestone):
         self.bugId = bugId
         self.title = title
         self.status = status
         self.assignedTo = assignedTo
         self.lastEdited = lastEdited
+        self.milestone = milestone
 
 
 class Goals:
@@ -51,7 +52,7 @@ def ReturnSorted(caseValues, goalValues):
     
 
     if goalValues.triage > 0:
-        triageCases = Cases(None, None, None, None, None) * goalValues.triage
+        triageCases = [Cases(None, None, None, None, None, None)] * goalValues.triage
         for i in range(0, goalValues.triage-1):
             triageCases[i] = caseValues[i]
             caseValues.pop(i)
@@ -82,7 +83,7 @@ def GoalNotMet(whichGoal, caseValues, data):
     # Call the Sheets API
 
     print("Clearing Sheet")
-    clearValues = [Cases("", "", "", "", "")] * 900
+    clearValues = [Cases("", "", "", "", "", "")] * 900
     range_ = "'Goals'!A7:E999"
     values = {'values': []}
     for i in range(0, len(clearValues)):
@@ -100,19 +101,21 @@ def GoalNotMet(whichGoal, caseValues, data):
     print(
         "Uploading bottlenecks to data report sheet")  ################################################################
     howManyCasesToShow = 10
-    arrayOfValues = [Cases(None, None, None, None, None)] * 900
-
+    arrayOfValues = [Cases(None, None, None, None, None, None)] * 900
+    if len(caseValues)<=10:
+        howManyCasesToShow = len(caseValues)
     for i in range(0, howManyCasesToShow):
         if caseValues[i].bugId is not None:
             arrayOfValues[i] = Cases(caseValues[i].bugId,
                                      caseValues[i].title,
                                      caseValues[i].status,
                                      caseValues[i].assignedTo,
-                                     caseValues[i].lastEdited)
+                                     caseValues[i].lastEdited,
+                                     caseValues[i].milestone)
             if i == 0 and whichGoal == 4:
                 arrayOfValues[i].assignedTo = FindTurn(arrayOfValues[i], data)
         else:
-            arrayOfValues[i] = Cases("", "", "", "", "")
+            arrayOfValues[i] = Cases("", "", "", "", "", "")
     # print(arrayOfValues[0].bugId,arrayOfValues[0].title,arrayOfValues[0].status,arrayOfValues[0].assignedTo,arrayOfValues[0].lastEdited)
     values = {'values': []}
     for i in range(0, len(arrayOfValues)):
@@ -172,7 +175,7 @@ def CheckGoals(data):
     print("Starting AssignedTo Query")  ###################################################################
     assignedFilter = data['assignedFilter']
     searchOldestUpdate = urllib.request.quote(assignedFilter)
-    returnedOldestUpdate = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtLastUpdated"
+    returnedOldestUpdate = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtLastUpdated,ixFixFor"
     queryOldestUpdate = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestUpdate + "&cols=" + \
                         returnedOldestUpdate + "&token=" + token
     response = urlopen(queryOldestUpdate)
@@ -188,16 +191,18 @@ def CheckGoals(data):
     oldestUpdateStatus = tree.findall(".//sStatus")
     oldestUpdateAssignedTo = tree.findall(".//sPersonAssignedTo")
     oldestUpdateLastEdited = tree.findall(".//dtLastUpdated")
+    oldestUpdatedMilestone = tree.findall(".//ixFixFor")  #this is the milestone for the case, i.e Triage, Undecided, 2018.3...
 
     print("\nStarting Check if Goal 1 is Met")  ###################################################################
-    offenderCases = [Cases(None, None, None, None, None)] * len(oldestUpdateLastEdited)
+    offenderCases = [Cases(None, None, None, None, None, None)] * len(oldestUpdateLastEdited)
     caseValues = [0] * len(oldestUpdateBugId)
     for i in range(0, len(oldestUpdateBugId)):
         caseValues[i] = Cases(oldestUpdateBugId[i].text,
                               oldestUpdateTitle[i].text,
                               oldestUpdateStatus[i].text,
                               oldestUpdateAssignedTo[i].text,
-                              oldestUpdateLastEdited[i].text)
+                              oldestUpdateLastEdited[i].text,
+                              oldestUpdatedMilestone[i].text)
 
     highest = 0
     goalIsMet = True
@@ -215,7 +220,8 @@ def CheckGoals(data):
                                                  caseValues[i].title,
                                                  caseValues[i].status,
                                                  caseValues[i].assignedTo,
-                                                 caseValues[i].lastEdited)
+                                                 caseValues[i].lastEdited,
+                                                 caseValues[i].milestone)
             offenderCount = offenderCount + 1
             goalIsMet = False
 
@@ -236,14 +242,15 @@ def CheckGoals(data):
     goalValues.offender1 = offenderCount
     offenderCount = 0
     activeCases = 0
-    offenderCases = [Cases(None, None, None, None, None)] * len(oldestUpdateLastEdited)
+    offenderCases = [Cases(None, None, None, None, None, None)] * len(oldestUpdateLastEdited)
     for i in range(0, len(oldestUpdateStatus)):
         if oldestUpdateStatus[i].text == "Active (New)":
             offenderCases[offenderCount] = Cases(caseValues[i].bugId,
                                                  caseValues[i].title,
                                                  caseValues[i].status,
                                                  caseValues[i].assignedTo,
-                                                 caseValues[i].lastEdited)
+                                                 caseValues[i].lastEdited,
+                                                 caseValues[i].milestone)
             offenderCount = offenderCount + 1
             activeCases = activeCases + 1
 
@@ -268,7 +275,7 @@ def CheckGoals(data):
     goal = datetime.now() - timedelta(days=goalCount)
     goalBugs = datetime.now() - timedelta(days=2)
 
-    offenderCases = [Cases(None, None, None, None, None)] * len(oldestUpdateLastEdited)
+    offenderCases = [Cases(None, None, None, None, None, None)] * len(oldestUpdateLastEdited)
     print("\nStarting Check if Goal 3 is Met")  ###################################################################
     for i in range(0, len(oldestUpdateLastEdited)):
         dateStripped = oldestUpdateLastEdited[i].text[0:10]
@@ -279,10 +286,10 @@ def CheckGoals(data):
                 print((dateFormatted - goal).days)
                 goalValues.g3 = goalCount - (dateFormatted - goal).days
         if ((dateFormatted - goal).days < 0 \
-                and "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
-                and "Resolved (Completed)" not in oldestUpdateStatus[i].text) \
+                and "Resolved" not in oldestUpdateStatus[i].text) \
                 or ((dateFormatted - goalBugs).days < 0 and "Active" in oldestUpdateStatus[i].text
-                and "(New)" not in oldestUpdateStatus[i].text and "(Pending Information)" not in oldestUpdateStatus[i].text):
+                and "(New)" not in oldestUpdateStatus[i].text and "(Pending Information)" not in oldestUpdateStatus[i].text
+                and "105" in oldestUpdatedMilestone[i].text):
             goalIsMet = False
 
             if "(New)" in oldestUpdateStatus[i].text or "(Pending Information)" in oldestUpdateStatus[i].text:
@@ -291,7 +298,8 @@ def CheckGoals(data):
                                                      caseValues[i].title,
                                                      caseValues[i].status,
                                                      caseValues[i].assignedTo,
-                                                     caseValues[i].lastEdited)
+                                                     caseValues[i].lastEdited,
+                                                     caseValues[i].milestone)
             else:
                 goalValues.g3 = goalCount - (dateFormatted - goalBugs).days
                 offenderCases.insert(0, Cases(
@@ -299,7 +307,8 @@ def CheckGoals(data):
                      caseValues[i].title,
                      caseValues[i].status,
                      caseValues[i].assignedTo,
-                     caseValues[i].lastEdited))
+                     caseValues[i].lastEdited,
+                     caseValues[i].milestone))
                 goalValues.triage += 1
 #            print(caseValues[i].bugId,
 #                  caseValues[i].title,
@@ -335,7 +344,7 @@ def CheckGoals(data):
         if filterIndex < len(newFilters) - 1:
             fullFilterForCount = fullFilterForCount + "OR"
 
-    returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened"
+    returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened,ixFixFor"
 
     queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + fullFilterForCount + ")" + "&cols=" + \
                          returnedOldestFilters + "&token=" + token
@@ -345,28 +354,28 @@ def CheckGoals(data):
     content = response.read().decode('utf-8')
     tree = ET.ElementTree(ET.fromstring(content))
     oldestAllFiltersBugId = tree.findall(".//ixBug")
-    caseValues = [0] * (len(oldestAllFiltersBugId) + 10)
+    caseValues = [0] * (len(oldestAllFiltersBugId) + 999)
     print(len(caseValues))
 
     totalCases = 0
 
-    print("###################");
-    print(len(newFilters));
-    print("###################");
+    #print("###################");
+    #print(len(newFilters));
+    #print("###################");
     zeroTracker = ZeroCases([],[],0)
     for filterIndex in range(0, len(newFilters)):
         zeroTracker.filterName.append(newFilters[filterIndex]["filterName"])
         zeroTracker.filter.append(0)
-    print("###################");
-    print(len(zeroTracker.filterName));
-    print("###################");
+    #print("###################");
+    #print(len(zeroTracker.filterName));
+    #print("###################");
     zeroGoal = datetime.now() - timedelta(days=1)
     for filterIndex in range(0, len(newFilters)):
 
 
         searchOldestFilters = assignedTo + urllib.request.quote(
             newFilters[filterIndex]['filterSearch'].replace("'", '"'))
-        returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened"
+        returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened,ixFixFor"
         queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestFilters + ")" + "&cols="\
                              + returnedOldestFilters + "&token=" + token
         response = urlopen(queryOldestFilters)
@@ -382,17 +391,19 @@ def CheckGoals(data):
         oldestFiltersStatus = tree.findall(".//sStatus")
         #       oldestFiltersAssignedTo = tree.findall(".//sPersonAssignedTo")
         oldestFiltersLastEdited = tree.findall(".//dtOpened")
+        oldestFiltersMilestone = tree.findall(".//ixFixFor")
         ##################################################################
         print("\nStarting Check if Goal 4 is Met with filter #", filterIndex)  #
 
         print(len(oldestFiltersBugId))
         for i in range(0, len(oldestFiltersBugId)):
-            
+
             caseValues[totalCases] = Cases(oldestFiltersBugId[i].text,
                                            oldestFiltersTitle[i].text,
                                            oldestFiltersStatus[i].text,
                                            newFilters[filterIndex]['filterName'],
-                                           oldestFiltersLastEdited[i].text)
+                                           oldestFiltersLastEdited[i].text,
+                                           oldestFiltersMilestone[i].text)
             dateStripped = caseValues[totalCases].lastEdited[0:10]
             dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
             print((dateFormatted - zeroGoal).days, ": ", dateFormatted, " ", dateStripped, " ",
@@ -406,14 +417,14 @@ def CheckGoals(data):
 
     ZeroTracker(data, zeroTracker)
 
-    offenderCases = [Cases(None, None, None, None, None)] * totalCases
-    print("0")
+    offenderCases = [Cases(None, None, None, None, None, None)] * totalCases
+    print("0 -", totalCases)
     highest = 0
     goalCount = int(data['goalsInOrder'][3])
     goal = datetime.now() - timedelta(days=goalCount)
 
     print("1")
-    for i in range(0, totalCases):
+    for i in range(0, totalCases-1):
         dateStripped = caseValues[i].lastEdited[0:10]
         dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
 
@@ -424,25 +435,26 @@ def CheckGoals(data):
                                                  caseValues[i].title,
                                                  caseValues[i].status,
                                                  caseValues[i].assignedTo,
-                                                 caseValues[i].lastEdited)
+                                                 caseValues[i].lastEdited,
+                                                 caseValues[i].milestone)
             print(offenderCases[offenderCount].bugId)
-        if i == 0 or (dateFormatted - goal).days >= highest:
+        if i == 0 or (dateFormatted - goal).days > highest:
             highest = (dateFormatted - goal).days
             print("Oldest case days is:", highest)
-            goalValues.g4 = goalCount - (dateFormatted - goal).days
+            goalValues.g4 = highest
             print(goalValues.g4, offenderCases[offenderCount].bugId)
 
     if goalIsMet:
         print("Goal 4 is met")
     else:
-
+        print("Goal 4 is NOT met")
         if not goalBottleneckReached:
             caseBottleneckAmount = offenderCount
             GoalNotMet(4, ReturnSorted(offenderCases, goalValues), data)
 
     print("BottleNeck case ammount:", caseBottleneckAmount)
     casesBeyondBottleneck = 10
-    potentialOffenderCases = [Cases("", "", "", "", "")] * casesBeyondBottleneck
+    potentialOffenderCases = [Cases("", "", "", "", "", "")] * casesBeyondBottleneck
 
     if caseBottleneckAmount < 10 and totalCases != 0:
         if totalCases < 10:
@@ -459,6 +471,10 @@ def CheckGoals(data):
 
 
     goalValues.offender4 = offenderCount
+    print("#############")
+    print(offenderCount)
+    print(goalValues.offender4)
+    print("#############")
     print(goalValues.offender1,goalValues.offender2, goalValues.offender3 )
     if goalValues.offender3 == 0 and goalValues.offender2 == 0 and goalValues.offender1 == 0:
         filteredPotentialOffendrers = RecursiveRemoveDupes(offenderCases, potentialOffenderCases)
