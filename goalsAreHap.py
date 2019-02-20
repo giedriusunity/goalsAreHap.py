@@ -9,8 +9,6 @@ from oauth2client import file, client, tools
 import json
 
 
-# THIS IS HERE TO TEST IF THE COMMIT WORKS
-# One more time
 class Cases:
     def __init__(self, bugId, title, status, assignedTo, lastEdited, milestone):
         self.bugId = bugId
@@ -35,7 +33,7 @@ class Goals:
 
 
 class ZeroCases:
-    def __init__(self, filterName, filter, beyond):
+    def __init__(self, filterName, filter, beyond):  #this is probably not the way assarys in python classes should be but hey, it works
         self.filterName = []
         self.filter = []
         self.beyond = beyond
@@ -50,7 +48,7 @@ class ZeroData:
 
 def ReturnSorted(caseValues, goalValues):
     
-
+    print("Sorting Cases")
     if goalValues.triage > 0:
         triageCases = [Cases(None, None, None, None, None, None)] * goalValues.triage
         for i in range(0, goalValues.triage-1):
@@ -134,6 +132,7 @@ def GoalNotMet(whichGoal, caseValues, data):
 
 
 def GoalCurrentValues(goal, data):
+    print("Setting Goal Values in sheet")
     SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
     SAMPLE_SPREADSHEET_ID = data['spreadsheet']
     store = file.Storage('token.json')
@@ -162,7 +161,6 @@ def GoalCurrentValues(goal, data):
     request.execute()
 
 
-##################################################################
 def CheckGoals(data):
     caseBottleneckAmount = 0
 
@@ -172,7 +170,7 @@ def CheckGoals(data):
 
     # FIRST GOAL##################################################################
     token = data['token']
-    print("Starting AssignedTo Query")  ###################################################################
+    print("Starting AssignedTo Query")
     assignedFilter = data['assignedFilter']
     searchOldestUpdate = urllib.request.quote(assignedFilter)
     returnedOldestUpdate = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtLastUpdated,ixFixFor"
@@ -236,7 +234,7 @@ def CheckGoals(data):
             goalBottleneckReached = True
 
     # SECOND GOAL##################################################################
-    print("\nStarting Check if Goal 2 is Met")  ###################################################################
+    print("\nStarting Check if Goal 2 is Met")
 
     goalCount = int(data['goalsInOrder'][1])
     goalValues.offender1 = offenderCount
@@ -283,12 +281,13 @@ def CheckGoals(data):
         if i == 0 or goalCount - (dateFormatted - goal).days > goalValues.g3:
             if "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
                     and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
-                print((dateFormatted - goal).days)
                 goalValues.g3 = goalCount - (dateFormatted - goal).days
         if ((dateFormatted - goal).days < 0 \
                 and "Resolved" not in oldestUpdateStatus[i].text) \
-                or ((dateFormatted - goalBugs).days < 0 and "Active" in oldestUpdateStatus[i].text
-                and "(New)" not in oldestUpdateStatus[i].text and "(Pending Information)" not in oldestUpdateStatus[i].text
+                or ((dateFormatted - goalBugs).days < 0
+                and "Active" in oldestUpdateStatus[i].text
+                and "(New)" not in oldestUpdateStatus[i].text
+                and "(Pending Information)" not in oldestUpdateStatus[i].text
                 and "105" in oldestUpdatedMilestone[i].text):
             goalIsMet = False
 
@@ -324,10 +323,9 @@ def CheckGoals(data):
             caseBottleneckAmount = offenderCount
             GoalNotMet(3, ReturnSorted(offenderCases, goalValues), data)
             goalBottleneckReached = True
-    # return
 
     # FOURTH GOAL##################################################################
-    print("Starting Oldest in filters Query")  ###################################################################
+    print("Starting Oldest in filters Query")
     goalValues.offender3 = offenderCount
     offenderCount = 0
 
@@ -355,31 +353,26 @@ def CheckGoals(data):
     tree = ET.ElementTree(ET.fromstring(content))
     oldestAllFiltersBugId = tree.findall(".//ixBug")
     caseValues = [0] * (len(oldestAllFiltersBugId) + 999)
-    print(len(caseValues))
 
     totalCases = 0
 
-    #print("###################");
-    #print(len(newFilters));
-    #print("###################");
-    zeroTracker = ZeroCases([],[],0)
+    zeroTracker = ZeroCases([], [], 0)
+
     for filterIndex in range(0, len(newFilters)):
         zeroTracker.filterName.append(newFilters[filterIndex]["filterName"])
         zeroTracker.filter.append(0)
-    #print("###################");
-    #print(len(zeroTracker.filterName));
-    #print("###################");
+
     zeroGoal = datetime.now() - timedelta(days=1)
     for filterIndex in range(0, len(newFilters)):
 
-
+        print("\nStarting Query Check if Goal 4 is Met with filter #", filterIndex)
         searchOldestFilters = assignedTo + urllib.request.quote(
             newFilters[filterIndex]['filterSearch'].replace("'", '"'))
         returnedOldestFilters = "ixBug,sTitle,sStatus,sPersonAssignedTo,dtOpened,ixFixFor"
         queryOldestFilters = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestFilters + ")" + "&cols="\
                              + returnedOldestFilters + "&token=" + token
         response = urlopen(queryOldestFilters)
-        print(filterIndex, " ", queryOldestFilters)
+        #print(filterIndex, " ", queryOldestFilters)
         print("Starting Oldest In Filters Decode")  ###################################################################
 
         content = response.read().decode('utf-8')
@@ -393,9 +386,8 @@ def CheckGoals(data):
         oldestFiltersLastEdited = tree.findall(".//dtOpened")
         oldestFiltersMilestone = tree.findall(".//ixFixFor")
         ##################################################################
-        print("\nStarting Check if Goal 4 is Met with filter #", filterIndex)  #
 
-        print(len(oldestFiltersBugId))
+
         for i in range(0, len(oldestFiltersBugId)):
 
             caseValues[totalCases] = Cases(oldestFiltersBugId[i].text,
@@ -406,9 +398,7 @@ def CheckGoals(data):
                                            oldestFiltersMilestone[i].text)
             dateStripped = caseValues[totalCases].lastEdited[0:10]
             dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
-            print((dateFormatted - zeroGoal).days, ": ", dateFormatted, " ", dateStripped, " ",
-                  caseValues[totalCases].lastEdited,
-                  caseValues[totalCases].bugId)
+
             if (dateFormatted - zeroGoal).days < -1:
 
                 zeroTracker.filter[filterIndex] = zeroTracker.filter[filterIndex] + 1;
@@ -418,12 +408,11 @@ def CheckGoals(data):
     ZeroTracker(data, zeroTracker)
 
     offenderCases = [Cases(None, None, None, None, None, None)] * totalCases
-    print("0 -", totalCases)
+
     highest = 0
     goalCount = int(data['goalsInOrder'][3])
     goal = datetime.now() - timedelta(days=goalCount)
 
-    print("1")
     for i in range(0, totalCases-1):
         dateStripped = caseValues[i].lastEdited[0:10]
         dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
@@ -437,12 +426,10 @@ def CheckGoals(data):
                                                  caseValues[i].assignedTo,
                                                  caseValues[i].lastEdited,
                                                  caseValues[i].milestone)
-            print(offenderCases[offenderCount].bugId)
         if i == 0 or (dateFormatted - goal).days > highest:
             highest = (dateFormatted - goal).days
-            print("Oldest case days is:", highest)
             goalValues.g4 = highest
-            print(goalValues.g4, offenderCases[offenderCount].bugId)
+
 
     if goalIsMet:
         print("Goal 4 is met")
@@ -471,11 +458,6 @@ def CheckGoals(data):
 
 
     goalValues.offender4 = offenderCount
-    print("#############")
-    print(offenderCount)
-    print(goalValues.offender4)
-    print("#############")
-    print(goalValues.offender1,goalValues.offender2, goalValues.offender3 )
     if goalValues.offender3 == 0 and goalValues.offender2 == 0 and goalValues.offender1 == 0:
         filteredPotentialOffendrers = RecursiveRemoveDupes(offenderCases, potentialOffenderCases)
 
@@ -485,12 +467,11 @@ def CheckGoals(data):
         print("Filling while some previous goal is not met")
         FillWithGoal4(potentialOffenderCases, caseBottleneckAmount, data, goalValues)
 
-    print("4")
     return goalValues
 
 
 def FindTurn(original, data):
-
+    print("Finding the turn for the person who needs to take oldest filter case")
     with open('turn.json', encoding="utf8") as f:
         turn = json.load(f)
     # potentialOffenderCases[index].assignedTo + "(" + data['turnOrder'][0]['owners'][0] + ")"
@@ -507,7 +488,7 @@ def FindTurn(original, data):
         if original.assignedTo == data["turnOrder"][index]["filterName"]:
 
             turnOrder = turn["turn"][index]
-            print(index, turnOrder)
+            #print(index, turnOrder)
             formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][int(turnOrder)] + ")"
 
             if original.bugId != turn["lastCase"]:
@@ -520,7 +501,7 @@ def FindTurn(original, data):
                 tree = ET.ElementTree(ET.fromstring(content))
                 assignedTo = tree.findall(".//sPersonAssignedTo")
                 personTurn = assignedTo[0].text
-                print(personTurn + " " + data["turnOrder"][index]["owners"][int(turnData["turn"][index])])
+                #print(personTurn + " " + data["turnOrder"][index]["owners"][int(turnData["turn"][index])])
                 if data["turnOrder"][index]["owners"][int(turnData["turn"][index])] == personTurn:
                     turnData["turn"][index] = str(int(turnData["turn"][index])+1)
                 if int(turnData["turn"][index]) == len(data["turnOrder"][index]['owners']):
@@ -573,13 +554,11 @@ def FillWithGoal4(potentialOffenders, caseBottleneckAmount, data, goalValues):
         sheetOffset = goalValues.offender4
     range_ = "'Goals'!A" + str(7 + sheetOffset) + ":E999"
 
-    # print(arrayOfValues[0].bugId,arrayOfValues[0].title,arrayOfValues[0].status,arrayOfValues[0].assignedTo,arrayOfValues[0].lastEdited)
     values = {'values': []}
     for i in range(0, len(potentialOffenders)):
 
         if potentialOffenders[i].bugId == None:
             potentialOffenders[i].bugId = ""
-        #'=HYPERLINK("https://fogbugz.unity3d.com/f/cases/' + potentialOffenders[i].bugId + '";"' + potentialOffenders[i].bugId + '")'
         values['values'].append(['=HYPERLINK("https://fogbugz.unity3d.com/f/cases/' + potentialOffenders[i].bugId +
                                  '";"' + potentialOffenders[i].bugId + '")',
                                  potentialOffenders[i].title,
@@ -597,8 +576,8 @@ def FillWithGoal4(potentialOffenders, caseBottleneckAmount, data, goalValues):
 ##################################################################
 def ReportGoals(goalValues, regularDay, downIndex, data):
     # regular day = 1 means it is friday, 2 is any other day
-    print("Starting updating team goals")  ##################################################################
-    print("Getting correct line")  ##################################################################
+    print("Starting updating team goals")
+    print("Getting correct line")
     SCOPES = 'https://www.googleapis.com/auth/spreadsheets'
     SAMPLE_SPREADSHEET_ID = data['spreadsheet']
     SAMPLE_RANGE_NAME = "'Goals Data'!A2:A999"
@@ -675,22 +654,21 @@ def ZeroTracker(data, zeroTracker):
 
 
 def ZeroCumulativeTracker(zeroCaseData, zeroTracker, data):
-
+    print("Starting check if each platform has 0 cases older than a day")
     if str(datetime.now())[0:10] != zeroCaseData["lastReset"] and datetime.now().weekday() == 4:
         for i in range(0, len(zeroCaseData["casesSinceLastZero"])):
             zeroCaseData["casesSinceLastZero"][i] = "0"
             zeroCaseData["lastReset"] = str(datetime.now())[0:10]
     queryStart = urllib.request.quote("editedBy:'QA Incoming' AND ")
     for i in range(0, len(zeroTracker.filter)):
-        print(zeroTracker.filterName[i], zeroTracker.filter[i])
         if zeroTracker.filter[i] == 0:
             if zeroCaseData["datesReached"][i] == "0":
                 dateStripped = str(datetime.now())[0:10]
                 dateStripped = datetime.strptime(dateStripped, '%Y-%m-%d').strftime('%m/%d/%Y')
                 zeroCaseData["datesReached"][i] = dateStripped
 
-                time = "" + str(datetime.now().hour-1) + ":" + str(datetime.now().minute)
-                zeroCaseData["timesReached"][i] = time
+                timeFormat = "" + str(datetime.now().hour-1) + ":" + str(datetime.now().minute)
+                zeroCaseData["timesReached"][i] = timeFormat
             teamEdited = "("
             for y in range(0, len(zeroCaseData["filters"][i]["owners"])):
                 if y < len(zeroCaseData["filters"][i]["owners"])-1:
@@ -702,9 +680,7 @@ def ZeroCumulativeTracker(zeroCaseData, zeroTracker, data):
                     urllib.request.quote(" AND lastedited:'" + zeroCaseData["datesReached"][i] + " "
                                          + zeroCaseData["timesReached"][i] + "..'") + \
                     "&cols=ixBug&token=" + data["token"]
-            print("$$$$$$$$$$$$$$$$$")
-            print(query)
-            print("$$$$$$$$$$$$$$$$$")
+
             response = urlopen(query)
             content = response.read().decode('utf-8')
             tree = ET.ElementTree(ET.fromstring(content))
@@ -727,13 +703,10 @@ def ZeroCumulativeTracker(zeroCaseData, zeroTracker, data):
 def CheckForAlreadyEdited(index, bugIDs, cases):
     print("Checking if cases that were done since zero reached are not dupes")
     caseArray = cases["casesChecked"]
-    print(len(cases["casesChecked"]))
-    print(len(bugIDs))
     for y in range(0, len(bugIDs)):
         notDupe = True
         for i in range(0, len(cases["casesChecked"])):
-            #print(type(bugIDs[y]), bugIDs[y], type(cases["casesChecked"][i]), cases["casesChecked"][i],
-             #     bugIDs[y] == cases["casesChecked"][i])
+
             if bugIDs[y] == cases["casesChecked"][i]:
                 notDupe = False
         if notDupe:
@@ -769,7 +742,7 @@ def main():
                     ReportGoals(goalValues, 1, 0, data)
                     downIndex = 0
 
-            if firstRun == False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
+            if firstRun is False or ((curDate - dateOther).total_seconds() / 60) >= loopCases:
                 print("Looping update")
                 dateOther = curDate
                 ReportGoals(goalValues, 2, downIndex, data)
