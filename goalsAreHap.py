@@ -299,7 +299,7 @@ def CheckGoals(data):
             goalIsMet = False
 
             if "(New)" in oldestUpdateStatus[i].text or "(Pending Information)" in oldestUpdateStatus[i].text:
-                #goalValues.g3 = goalCount - (dateFormatted - goal).days
+
                 offenderCases[offenderCount] = Cases(caseValues[i].bugId,
                                                      caseValues[i].title,
                                                      caseValues[i].status,
