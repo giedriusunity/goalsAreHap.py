@@ -291,7 +291,7 @@ def CheckGoals(data):
             if "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
                     and "Resolved (Completed)" not in caseValues[i].status:
                 goalValues.g3 = goalCount - (dateFormatted - goal).days
-                print("Goal 3 value", goalValues.g3, caseValues[i].bugId)
+                #print("Goal 3 value", goalValues.g3, caseValues[i].bugId)
         if ((dateFormatted - goal).days < 0 and "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
                     and "Resolved (Completed)" not in caseValues[i].status) \
                 or ((dateFormatted - goalBugs).days < 0
