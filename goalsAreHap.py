@@ -49,18 +49,19 @@ class ZeroData:
 
 def ReturnSorted(caseValues, goalValues):
     print("Sorting Cases")
+    for i in range(0, len(caseValues)):
+        caseValues[i].lastEdited = str(caseValues[i].lastEdited)
+        caseValues[i].lastEdited = caseValues[i].lastEdited[0:10]
     if goalValues.triage > 0:
         triageCases = [Cases(None, None, None, None, None, None)] * goalValues.triage
         for i in range(0, goalValues.triage - 1):
             triageCases[i] = caseValues[i]
             caseValues.pop(i)
-    for i in range(0, len(caseValues)):
-        caseValues[i].lastEdited = str(caseValues[i].lastEdited)
-        caseValues[i].lastEdited = caseValues[i].lastEdited[0:10]
+
     caseValues.sort(key=lambda x: x.lastEdited)
     if goalValues.triage > 0:
         for i in range(0, goalValues.triage - 1):
-            caseValues.insert(triageCases[i])
+            caseValues.insert(0, triageCases[i])
     return caseValues
 
 
@@ -174,7 +175,7 @@ def CheckGoals(data):
     queryOldestUpdate = "http://fogbugz.unity3d.com/api.asp?cmd=search&q=" + searchOldestUpdate + "&cols=" + \
                         returnedOldestUpdate + "&token=" + token
     response = urlopen(queryOldestUpdate)
-    # print(queryOldestUpdate)
+    print(queryOldestUpdate)
     print("Starting AssignedTo Decode")  #
 
     content = response.read().decode('utf-8')
@@ -208,7 +209,7 @@ def CheckGoals(data):
     goal = datetime.now() - timedelta(days=goalCount)  # Date generated from json file to compare to
     for i in range(0, len(oldestUpdateLastEdited)):
 
-        dateStripped = oldestUpdateLastEdited[i].text[0:10]
+        dateStripped = caseValues[i].lastEdited[0:10]
         dateFormatted = datetime.strptime(dateStripped,
                                           "%Y-%m-%d")  # Date from fogbugz comes in a ISO 8601 Notation, needs to be fixed up for comparison
         if i == 0 or (dateFormatted - goal).days < highest:
@@ -276,38 +277,33 @@ def CheckGoals(data):
     offenderCount = 0
     goalCount = int(data['goalsInOrder'][2])
     goal = datetime.now() - timedelta(days=goalCount)
-    goalBugs = datetime.now() - timedelta(days=2)
+    goalCountBugs = 2
+    goalBugs = datetime.now() - timedelta(days=goalCountBugs)
+    print(goalBugs)
 
     offenderCases = [Cases(None, None, None, None, None, None)] * len(oldestUpdateLastEdited)
     print("\nStarting Check if Goal 3 is Met")  ###################################################################
     for i in range(0, len(oldestUpdateLastEdited)):
-        dateStripped = oldestUpdateLastEdited[i].text[0:10]
+        dateStripped = caseValues[i].lastEdited[0:10]
         dateFormatted = datetime.strptime(dateStripped, "%Y-%m-%d")
         if i == 0 or goalCount - (
                 dateFormatted - goal).days > goalValues.g3:  # This is for all cases that are old and not resovled
             if "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
-                    and "Resolved (Completed)" not in oldestUpdateStatus[i].text:
+                    and "Resolved (Completed)" not in caseValues[i].status:
                 goalValues.g3 = goalCount - (dateFormatted - goal).days
-        if ((dateFormatted - goal).days < 0 \
-            and "Resolved" not in oldestUpdateStatus[i].text) \
+                print("Goal 3 value", goalValues.g3, caseValues[i].bugId)
+        if ((dateFormatted - goal).days < 0 and "Resolved (Fixed)" not in oldestUpdateStatus[i].text \
+                    and "Resolved (Completed)" not in caseValues[i].status) \
                 or ((dateFormatted - goalBugs).days < 0
-                    and "Active" in oldestUpdateStatus[i].text
-                    and "(New)" not in oldestUpdateStatus[i].text
-                    and "(Pending Information)" not in oldestUpdateStatus[i].text
-                    and "105" in oldestUpdatedMilestone[
-                        i].text):  # This is for cases that are returned as converted but triage back from devs. milestone = 105 is Triage
+                    and "Active" in caseValues[i].status
+                    and "Active (New)" not in caseValues[i].status
+                    and "Active (Pending Information)" not in caseValues[i].status
+                    and "105" in caseValues[i].milestone):  # This is for cases that are returned as converted but triage back from devs. milestone = 105 is Triage
             goalIsMet = False
 
-            if "(New)" in oldestUpdateStatus[i].text or "(Pending Information)" in oldestUpdateStatus[i].text:
-
-                offenderCases[offenderCount] = Cases(caseValues[i].bugId,
-                                                     caseValues[i].title,
-                                                     caseValues[i].status,
-                                                     caseValues[i].assignedTo,
-                                                     caseValues[i].lastEdited,
-                                                     caseValues[i].milestone)
-            else:  # Place returned triage cases at the start of the array
-                goalValues.g3 = goalCount - (dateFormatted - goalBugs).days
+            if "(New)" not in caseValues[i].status and "(Pending Information)" in caseValues[i].status and \
+                    "Active" in caseValues[i].status and "105" in caseValues[i].milestone:
+                # Place returned triage cases at the start of the array
                 offenderCases.insert(0, Cases(
                     caseValues[i].bugId,
                     caseValues[i].title,
@@ -316,14 +312,28 @@ def CheckGoals(data):
                     caseValues[i].lastEdited,
                     caseValues[i].milestone))
                 goalValues.triage += 1
-            #            print(caseValues[i].bugId,
-            #                  caseValues[i].title,
-            #                  caseValues[i].status,
-            #                  caseValues[i].assignedTo,
-            #                  caseValues[i].lastEdited)
+
+            else:
+
+                offenderCases[offenderCount] = Cases(caseValues[i].bugId,
+                                                     caseValues[i].title,
+                                                     caseValues[i].status,
+                                                     caseValues[i].assignedTo,
+                                                     caseValues[i].lastEdited,
+                                                     caseValues[i].milestone)
+#                print(goalCount, (dateFormatted - goal).days, (caseValues[i].bugId,
+#                                                     caseValues[i].title,
+#                                                     caseValues[i].status,
+#                                                     caseValues[i].assignedTo,
+#                                                     caseValues[i].lastEdited,
+#                                                     caseValues[i].milestone))
+
+
+
             offenderCount = offenderCount + 1
     if goalIsMet:
-        print("Goal 3 is met")
+        print("Goal 3 is met", goalValues.g3)
+
     else:
 
         if not goalBottleneckReached:
@@ -537,7 +547,7 @@ def FindTurn(original, data):
 def RecursiveRemoveDupes(offenders, potentialOffenders):
     print("Removing duplicates")
     # Since if it finds a dupe it pops, the array size must be lowered. At the end we have a nicely sized array with no dupes
-    filteredCases = [Cases(0, 0, 0, 0, 0)] * len(potentialOffenders)
+    filteredCases = [Cases(0, 0, 0, 0, 0, 0)] * len(potentialOffenders)
     for i in range(0, len(potentialOffenders)):
         for j in range(0, len(offenders)):
             if potentialOffenders[i].bugId == offenders[j].bugId:
