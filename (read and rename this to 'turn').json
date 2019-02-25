@@ -1,0 +1,5 @@
+{
+"turn": ["0", "0"], 
+"explanation": "leave as many array elements as teams in keyValues",
+"lastCase": "1000000"
+}
