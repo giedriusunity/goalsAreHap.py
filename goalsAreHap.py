@@ -449,8 +449,8 @@ def CheckGoals(data):
                                                  caseValues[i].assignedTo,
                                                  caseValues[i].lastEdited,
                                                  caseValues[i].milestone)
-        if i == 0 or (dateFormatted - goal).days > highest:
-            highest = (dateFormatted - goal).days
+        if i == 0 or goalCount - (dateFormatted - goal).days > highest:
+            highest = goalCount - (dateFormatted - goal).days
             goalValues.g4 = highest
 
     if goalIsMet:
