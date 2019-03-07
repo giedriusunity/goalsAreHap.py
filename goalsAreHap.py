@@ -52,6 +52,7 @@ def ReturnSorted(caseValues, goalValues):
     for i in range(0, len(caseValues)):
         caseValues[i].lastEdited = str(caseValues[i].lastEdited)
         caseValues[i].lastEdited = caseValues[i].lastEdited[0:10]
+    print("triage", goalValues.triage)
     if goalValues.triage > 0:
         triageCases = [Cases(None, None, None, None, None, None)] * goalValues.triage
         for i in range(0, goalValues.triage - 1):
@@ -301,7 +302,7 @@ def CheckGoals(data):
                     and "105" in caseValues[i].milestone):  # This is for cases that are returned as converted but triage back from devs. milestone = 105 is Triage
             goalIsMet = False
 
-            if "(New)" not in caseValues[i].status and "(Pending Information)" in caseValues[i].status and \
+            if "(New)" not in caseValues[i].status and "(Pending Information)" not in caseValues[i].status and \
                     "Active" in caseValues[i].status and "105" in caseValues[i].milestone:
                 # Place returned triage cases at the start of the array
                 offenderCases.insert(0, Cases(
@@ -312,6 +313,7 @@ def CheckGoals(data):
                     caseValues[i].lastEdited,
                     caseValues[i].milestone))
                 goalValues.triage += 1
+                print(caseValues[i].bugId)
 
             else:
 
@@ -515,7 +517,7 @@ def FindTurn(original, data):
         if original.assignedTo == data["turnOrder"][index]["filterName"]:
 
             turnOrder = turn["turn"][index]  # Whose turn is it anyway?
-            # print(index, turnOrder)
+            print(index, turnOrder)
             formatted = original.assignedTo + "(" + data["turnOrder"][index]['owners'][
                 int(turnOrder)] + ")"  # E.g iOS to iOS(John Johnson)
 
